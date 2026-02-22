@@ -29,6 +29,7 @@ import {
   useAddUserPermissionsMutation,
   useDeleteUserPermissionsMutation,
 } from "../features/api/usersApi";
+import { getErrorMessage } from "../features/api/baseApi";
 import { usePermission } from "../hooks/usePermission";
 import type { User, CreateUserRequest, UpdateUserRequest } from "../types";
 import type { ColumnsType } from "antd/es/table";
@@ -58,8 +59,9 @@ function CreateUserModal({
       message.success("Foydalanuvchi yaratildi!");
       form.resetFields();
       onClose();
-    } catch {
-      message.error("Yaratishda xatolik yuz berdi");
+    } catch (err: unknown) {
+      const error = err as { data?: unknown };
+      message.error(getErrorMessage(error?.data, "Yaratishda xatolik yuz berdi"));
     }
   };
 
@@ -160,8 +162,8 @@ function EditUserModal({
       await updateUser({ id: user.id, ...userData }).unwrap();
       message.success("Foydalanuvchi yangilandi!");
     } catch (err: unknown) {
-      const error = err as { data?: { message?: string } };
-      message.error(error?.data?.message || "Foydalanuvchini yangilashda xatolik");
+      const error = err as { data?: unknown };
+      message.error(getErrorMessage(error?.data, "Foydalanuvchini yangilashda xatolik"));
     }
 
     const oldRoleIds = roles
@@ -181,8 +183,8 @@ function EditUserModal({
         message.success("Rollar yangilandi!");
       }
     } catch (err: unknown) {
-      const error = err as { data?: { message?: string } };
-      message.error(error?.data?.message || "Rollarni yangilashda xatolik");
+      const error = err as { data?: unknown };
+      message.error(getErrorMessage(error?.data, "Rollarni yangilashda xatolik"));
     }
 
     const oldPermIds = permissions
@@ -202,8 +204,8 @@ function EditUserModal({
         message.success("Huquqlar yangilandi!");
       }
     } catch (err: unknown) {
-      const error = err as { data?: { message?: string } };
-      message.error(error?.data?.message || "Huquqlarni yangilashda xatolik");
+      const error = err as { data?: unknown };
+      message.error(getErrorMessage(error?.data, "Huquqlarni yangilashda xatolik"));
     }
 
     onClose();
@@ -305,8 +307,9 @@ function UserActions({ user, onEdit }: { user: User; onEdit: (user: User) => voi
     try {
       await deleteUser(user.id).unwrap();
       message.success("Foydalanuvchi o'chirildi");
-    } catch {
-      message.error("O'chirishda xatolik yuz berdi");
+    } catch (err: unknown) {
+      const error = err as { data?: unknown };
+      message.error(getErrorMessage(error?.data, "O'chirishda xatolik yuz berdi"));
     }
   };
 

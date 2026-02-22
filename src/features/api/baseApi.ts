@@ -9,6 +9,13 @@ import { message } from "antd";
 import type { RootState } from "../../app/store";
 import { logout } from "../authSlice";
 
+export function getErrorMessage(data: unknown, fallback: string): string {
+  const err = data as { message?: { uz?: string } | string };
+  if (typeof err?.message === "object" && err.message?.uz) return err.message.uz;
+  if (typeof err?.message === "string") return err.message;
+  return fallback;
+}
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: "http://localhost:3000/api",
   prepareHeaders: (headers, { getState }) => {
@@ -38,7 +45,8 @@ const baseQueryWithHandlers: BaseQueryFn<
       api.dispatch(logout());
     }
     if (status === 403) {
-      message.error("Sizda bu amalni bajarish huquqi yo'q!");
+      const errorData = result.error.data;
+      message.error(getErrorMessage(errorData, "Sizda bu amalni bajarish huquqi yo'q!"));
     }
   }
 
