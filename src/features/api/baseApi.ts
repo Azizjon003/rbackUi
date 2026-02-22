@@ -17,7 +17,7 @@ export function getErrorMessage(data: unknown, fallback: string): string {
 }
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: "http://localhost:3000/api",
+  baseUrl: import.meta.env.VITE_API_BASE_URL,
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
     if (token) {

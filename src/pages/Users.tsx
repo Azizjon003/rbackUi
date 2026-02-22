@@ -43,19 +43,13 @@ function CreateUserModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const [form] = Form.useForm<CreateUserRequest & { roleIds: number[] }>();
-  const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
-  const [addUserRoles, { isLoading: isAddingRoles }] = useAddUserRolesMutation();
-  const { data: roles } = useGetRolesQuery();
+  const [form] = Form.useForm<CreateUserRequest>();
+  const [createUser, { isLoading }] = useCreateUserMutation();
   const screens = Grid.useBreakpoint();
 
-  const handleSubmit = async (values: CreateUserRequest & { roleIds: number[] }) => {
+  const handleSubmit = async (values: CreateUserRequest) => {
     try {
-      const { roleIds, ...userData } = values;
-      const newUser = await createUser(userData).unwrap();
-      if (roleIds?.length) {
-        await addUserRoles({ userId: newUser.id, roleIds }).unwrap();
-      }
+      await createUser(values).unwrap();
       message.success("Foydalanuvchi yaratildi!");
       form.resetFields();
       onClose();
@@ -114,20 +108,10 @@ function CreateUserModal({
         >
           <Input.Password placeholder="Parol" />
         </Form.Item>
-        <Form.Item
-          name="roleIds"
-          label="Rollar"
-        >
-          <Select
-            mode="multiple"
-            placeholder="Rollarni tanlang"
-            options={roles?.map((r) => ({ label: r.name, value: r.id }))}
-          />
-        </Form.Item>
         <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
           <Space>
             <Button onClick={onClose}>Bekor qilish</Button>
-            <Button type="primary" htmlType="submit" loading={isCreating || isAddingRoles}>
+            <Button type="primary" htmlType="submit" loading={isLoading}>
               Yaratish
             </Button>
           </Space>
@@ -158,12 +142,19 @@ function EditUserModal({
     if (!user) return;
     const { roleIds, permissionIds, ...userData } = values;
 
-    try {
-      await updateUser({ id: user.id, ...userData }).unwrap();
-      message.success("Foydalanuvchi yangilandi!");
-    } catch (err: unknown) {
-      const error = err as { data?: unknown };
-      message.error(getErrorMessage(error?.data, "Foydalanuvchini yangilashda xatolik"));
+    const userChanged =
+      userData.name !== user.name ||
+      userData.surname !== user.surname ||
+      userData.email !== user.email;
+
+    if (userChanged) {
+      try {
+        await updateUser({ id: user.id, ...userData }).unwrap();
+        message.success("Foydalanuvchi yangilandi!");
+      } catch (err: unknown) {
+        const error = err as { data?: unknown };
+        message.error(getErrorMessage(error?.data, "Foydalanuvchini yangilashda xatolik"));
+      }
     }
 
     const oldRoleIds = roles
@@ -172,19 +163,19 @@ function EditUserModal({
     const rolesToAdd = roleIds.filter((id) => !oldRoleIds.includes(id));
     const rolesToRemove = oldRoleIds.filter((id) => !roleIds.includes(id));
 
-    try {
-      if (rolesToAdd.length) {
-        await addUserRoles({ userId: user.id, roleIds: rolesToAdd }).unwrap();
-      }
-      if (rolesToRemove.length) {
-        await deleteUserRoles({ userId: user.id, roleIds: rolesToRemove }).unwrap();
-      }
-      if (rolesToAdd.length || rolesToRemove.length) {
+    if (rolesToAdd.length || rolesToRemove.length) {
+      try {
+        if (rolesToAdd.length) {
+          await addUserRoles({ userId: user.id, roleIds: rolesToAdd }).unwrap();
+        }
+        if (rolesToRemove.length) {
+          await deleteUserRoles({ userId: user.id, roleIds: rolesToRemove }).unwrap();
+        }
         message.success("Rollar yangilandi!");
+      } catch (err: unknown) {
+        const error = err as { data?: unknown };
+        message.error(getErrorMessage(error?.data, "Rollarni yangilashda xatolik"));
       }
-    } catch (err: unknown) {
-      const error = err as { data?: unknown };
-      message.error(getErrorMessage(error?.data, "Rollarni yangilashda xatolik"));
     }
 
     const oldPermIds = permissions
@@ -193,19 +184,19 @@ function EditUserModal({
     const permsToAdd = permissionIds.filter((id) => !oldPermIds.includes(id));
     const permsToRemove = oldPermIds.filter((id) => !permissionIds.includes(id));
 
-    try {
-      if (permsToAdd.length) {
-        await addUserPermissions({ userId: user.id, permissionIds: permsToAdd }).unwrap();
-      }
-      if (permsToRemove.length) {
-        await deleteUserPermissions({ userId: user.id, permissionIds: permsToRemove }).unwrap();
-      }
-      if (permsToAdd.length || permsToRemove.length) {
+    if (permsToAdd.length || permsToRemove.length) {
+      try {
+        if (permsToAdd.length) {
+          await addUserPermissions({ userId: user.id, permissionIds: permsToAdd }).unwrap();
+        }
+        if (permsToRemove.length) {
+          await deleteUserPermissions({ userId: user.id, permissionIds: permsToRemove }).unwrap();
+        }
         message.success("Huquqlar yangilandi!");
+      } catch (err: unknown) {
+        const error = err as { data?: unknown };
+        message.error(getErrorMessage(error?.data, "Huquqlarni yangilashda xatolik"));
       }
-    } catch (err: unknown) {
-      const error = err as { data?: unknown };
-      message.error(getErrorMessage(error?.data, "Huquqlarni yangilashda xatolik"));
     }
 
     onClose();
