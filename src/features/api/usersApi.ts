@@ -1,5 +1,5 @@
 import { baseApi } from "./baseApi";
-import type { User, CreateUserRequest, UpdateUserRequest } from "../../types";
+import type { User, Role, Permission, CreateUserRequest, UpdateUserRequest, AddUserRolesRequest, AddUserPermissionsRequest } from "../../types";
 
 export const usersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -16,28 +16,72 @@ export const usersApi = baseApi.injectEndpoints({
 
     createUser: builder.mutation<User, CreateUserRequest>({
       query: (body) => ({
-        url: "/users",
+        url: "/users/add",
+        method: "POST",
+        body: { user: body },
+      }),
+      invalidatesTags: ["Users"],
+    }),
+
+    updateUser: builder.mutation<User, UpdateUserRequest>({
+      query: (data) => ({
+        url: "/users/update",
+        method: "PUT",
+        body: { user: data },
+      }),
+      invalidatesTags: ["Users"],
+    }),
+
+    deleteUser: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/users/delete/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Users"],
+    }),
+
+    getRoles: builder.query<Role[], void>({
+      query: () => "/users/roles",
+      transformResponse: (response: { roles: Role[] }) => response.roles,
+    }),
+
+    addUserRoles: builder.mutation<void, AddUserRolesRequest>({
+      query: (body) => ({
+        url: "/users/role/add",
         method: "POST",
         body,
       }),
       invalidatesTags: ["Users"],
     }),
 
-    updateUser: builder.mutation<User, { id: number; data: UpdateUserRequest }>(
-      {
-        query: ({ id, data }) => ({
-          url: `/users/${id}`,
-          method: "PUT",
-          body: data,
-        }),
-        invalidatesTags: ["Users"],
-      },
-    ),
+    deleteUserRoles: builder.mutation<void, AddUserRolesRequest>({
+      query: (body) => ({
+        url: "/users/role/delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Users"],
+    }),
 
-    deleteUser: builder.mutation<void, number>({
-      query: (id) => ({
-        url: `/users/${id}`,
-        method: "DELETE",
+    getPermissions: builder.query<Permission[], void>({
+      query: () => "/users/permissions",
+      transformResponse: (response: { permissions: Permission[] }) => response.permissions,
+    }),
+
+    addUserPermissions: builder.mutation<void, AddUserPermissionsRequest>({
+      query: (body) => ({
+        url: "/users/permission/add",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Users"],
+    }),
+
+    deleteUserPermissions: builder.mutation<void, AddUserPermissionsRequest>({
+      query: (body) => ({
+        url: "/users/permission/delete",
+        method: "POST",
+        body,
       }),
       invalidatesTags: ["Users"],
     }),
@@ -50,4 +94,10 @@ export const {
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useGetRolesQuery,
+  useAddUserRolesMutation,
+  useDeleteUserRolesMutation,
+  useGetPermissionsQuery,
+  useAddUserPermissionsMutation,
+  useDeleteUserPermissionsMutation,
 } = usersApi;

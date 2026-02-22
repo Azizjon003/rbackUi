@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layout, Menu, Button, Typography, Flex, theme, Spin } from "antd";
+import { Layout, Menu, Button, Typography, Flex, Grid, Drawer, theme, Spin } from "antd";
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -16,9 +16,13 @@ import { useGetProfileQuery } from "../features/api/authApi";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const { data: profile, isLoading, error } = useGetProfileQuery();
 
@@ -80,33 +84,69 @@ export default function AppLayout() {
     item.permissions.some((p) => p === "*" || permissions.includes(p)),
   );
 
+  const handleMenuClick = ({ key }: { key: string }) => {
+    navigate(key);
+    if (isMobile) setDrawerOpen(false);
+  };
+
+  const siderMenu = (
+    <>
+      <Flex
+        justify="center"
+        align="center"
+        style={{ height: 64, borderBottom: "1px solid #f0f0f0" }}
+      >
+        <Text strong style={{ fontSize: 20 }}>
+          RBackUI
+        </Text>
+      </Flex>
+      <Menu
+        mode="inline"
+        selectedKeys={[location.pathname]}
+        items={menuItems}
+        onClick={handleMenuClick}
+        style={{ border: "none" }}
+      />
+    </>
+  );
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        breakpoint="lg"
-        onBreakpoint={(broken) => setCollapsed(broken)}
-        style={{ background: colorBgContainer }}
-      >
-        <Flex
-          justify="center"
-          align="center"
-          style={{ height: 64, borderBottom: "1px solid #f0f0f0" }}
+      {isMobile ? (
+        <Drawer
+          placement="left"
+          onClose={() => setDrawerOpen(false)}
+          open={drawerOpen}
+          width={240}
+          styles={{ body: { padding: 0 } }}
         >
-          <Text strong style={{ fontSize: collapsed ? 16 : 20 }}>
-            {collapsed ? "R" : "RBackUI"}
-          </Text>
-        </Flex>
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-          style={{ border: "none" }}
-        />
-      </Sider>
+          {siderMenu}
+        </Drawer>
+      ) : (
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          style={{ background: colorBgContainer }}
+        >
+          <Flex
+            justify="center"
+            align="center"
+            style={{ height: 64, borderBottom: "1px solid #f0f0f0" }}
+          >
+            <Text strong style={{ fontSize: collapsed ? 16 : 20 }}>
+              {collapsed ? "R" : "RBackUI"}
+            </Text>
+          </Flex>
+          <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            onClick={handleMenuClick}
+            style={{ border: "none" }}
+          />
+        </Sider>
+      )}
 
       <Layout>
         <Header
@@ -121,24 +161,26 @@ export default function AppLayout() {
         >
           <Button
             type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
+            icon={isMobile ? <MenuUnfoldOutlined /> : (collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />)}
+            onClick={() => isMobile ? setDrawerOpen(true) : setCollapsed(!collapsed)}
           />
-          <Flex align="center" gap={16}>
-            <Text>
-              {user?.name} {user?.surname}
-            </Text>
+          <Flex align="center" gap={isMobile ? 8 : 16}>
+            {!isMobile && (
+              <Text>
+                {user?.name} {user?.surname}
+              </Text>
+            )}
             <Button
               type="text"
               danger
               icon={<LogoutOutlined />}
               onClick={handleLogout}
             >
-              Chiqish
+              {isMobile ? "" : "Chiqish"}
             </Button>
           </Flex>
         </Header>
-        <Content style={{ margin: 24 }}>
+        <Content style={{ margin: isMobile ? 12 : 24 }}>
           <Outlet />
         </Content>
       </Layout>

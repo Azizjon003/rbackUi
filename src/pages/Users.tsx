@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   Card,
@@ -6,6 +7,11 @@ import {
   Button,
   Space,
   Popconfirm,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Grid,
   message,
   Spin,
   Flex,
@@ -13,14 +19,285 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import {
   useGetUsersQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
   useDeleteUserMutation,
+  useGetRolesQuery,
+  useAddUserRolesMutation,
+  useDeleteUserRolesMutation,
+  useGetPermissionsQuery,
+  useAddUserPermissionsMutation,
+  useDeleteUserPermissionsMutation,
 } from "../features/api/usersApi";
 import { usePermission } from "../hooks/usePermission";
-import type { User } from "../types";
+import type { User, CreateUserRequest, UpdateUserRequest } from "../types";
 import type { ColumnsType } from "antd/es/table";
 
 const { Title } = Typography;
-function UserActions({ user }: { user: User }) {
+
+function CreateUserModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [form] = Form.useForm<CreateUserRequest & { roleIds: number[] }>();
+  const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
+  const [addUserRoles, { isLoading: isAddingRoles }] = useAddUserRolesMutation();
+  const { data: roles } = useGetRolesQuery();
+  const screens = Grid.useBreakpoint();
+
+  const handleSubmit = async (values: CreateUserRequest & { roleIds: number[] }) => {
+    try {
+      const { roleIds, ...userData } = values;
+      const newUser = await createUser(userData).unwrap();
+      if (roleIds?.length) {
+        await addUserRoles({ userId: newUser.id, roleIds }).unwrap();
+      }
+      message.success("Foydalanuvchi yaratildi!");
+      form.resetFields();
+      onClose();
+    } catch {
+      message.error("Yaratishda xatolik yuz berdi");
+    }
+  };
+
+  return (
+    <Modal
+      title="Yangi foydalanuvchi"
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      destroyOnClose
+      width={screens.md ? 520 : "95vw"}
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        style={{ marginTop: 16 }}
+      >
+        <Form.Item
+          name="name"
+          label="Ism"
+          rules={[{ required: true, message: "Ism kiriting!" }]}
+        >
+          <Input placeholder="Ism" />
+        </Form.Item>
+        <Form.Item
+          name="surname"
+          label="Familiya"
+          rules={[{ required: true, message: "Familiya kiriting!" }]}
+        >
+          <Input placeholder="Familiya" />
+        </Form.Item>
+        <Form.Item
+          name="email"
+          label="Email"
+          rules={[
+            { required: true, message: "Email kiriting!" },
+            { type: "email", message: "Email formati noto'g'ri!" },
+          ]}
+        >
+          <Input placeholder="Email" />
+        </Form.Item>
+        <Form.Item
+          name="password"
+          label="Parol"
+          rules={[
+            { required: true, message: "Parol kiriting!" },
+            { min: 6, message: "Parol kamida 6 ta belgidan iborat bo'lsin!" },
+          ]}
+        >
+          <Input.Password placeholder="Parol" />
+        </Form.Item>
+        <Form.Item
+          name="roleIds"
+          label="Rollar"
+        >
+          <Select
+            mode="multiple"
+            placeholder="Rollarni tanlang"
+            options={roles?.map((r) => ({ label: r.name, value: r.id }))}
+          />
+        </Form.Item>
+        <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
+          <Space>
+            <Button onClick={onClose}>Bekor qilish</Button>
+            <Button type="primary" htmlType="submit" loading={isCreating || isAddingRoles}>
+              Yaratish
+            </Button>
+          </Space>
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+function EditUserModal({
+  user,
+  onClose,
+}: {
+  user: User | null;
+  onClose: () => void;
+}) {
+  const [form] = Form.useForm<Omit<UpdateUserRequest, "id"> & { roleIds: number[]; permissionIds: number[] }>();
+  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
+  const [addUserRoles, { isLoading: isAddingRoles }] = useAddUserRolesMutation();
+  const [deleteUserRoles, { isLoading: isDeletingRoles }] = useDeleteUserRolesMutation();
+  const [addUserPermissions, { isLoading: isAddingPerms }] = useAddUserPermissionsMutation();
+  const [deleteUserPermissions, { isLoading: isDeletingPerms }] = useDeleteUserPermissionsMutation();
+  const { data: roles } = useGetRolesQuery();
+  const { data: permissions } = useGetPermissionsQuery();
+  const screens = Grid.useBreakpoint();
+
+  const handleSubmit = async (values: Omit<UpdateUserRequest, "id"> & { roleIds: number[]; permissionIds: number[] }) => {
+    if (!user) return;
+    const { roleIds, permissionIds, ...userData } = values;
+
+    try {
+      await updateUser({ id: user.id, ...userData }).unwrap();
+      message.success("Foydalanuvchi yangilandi!");
+    } catch (err: unknown) {
+      const error = err as { data?: { message?: string } };
+      message.error(error?.data?.message || "Foydalanuvchini yangilashda xatolik");
+    }
+
+    const oldRoleIds = roles
+      ?.filter((r) => user.roles.includes(r.name))
+      .map((r) => r.id) ?? [];
+    const rolesToAdd = roleIds.filter((id) => !oldRoleIds.includes(id));
+    const rolesToRemove = oldRoleIds.filter((id) => !roleIds.includes(id));
+
+    try {
+      if (rolesToAdd.length) {
+        await addUserRoles({ userId: user.id, roleIds: rolesToAdd }).unwrap();
+      }
+      if (rolesToRemove.length) {
+        await deleteUserRoles({ userId: user.id, roleIds: rolesToRemove }).unwrap();
+      }
+      if (rolesToAdd.length || rolesToRemove.length) {
+        message.success("Rollar yangilandi!");
+      }
+    } catch (err: unknown) {
+      const error = err as { data?: { message?: string } };
+      message.error(error?.data?.message || "Rollarni yangilashda xatolik");
+    }
+
+    const oldPermIds = permissions
+      ?.filter((p) => user.permissions.includes(`${p.action}:${p.resource}`))
+      .map((p) => p.id) ?? [];
+    const permsToAdd = permissionIds.filter((id) => !oldPermIds.includes(id));
+    const permsToRemove = oldPermIds.filter((id) => !permissionIds.includes(id));
+
+    try {
+      if (permsToAdd.length) {
+        await addUserPermissions({ userId: user.id, permissionIds: permsToAdd }).unwrap();
+      }
+      if (permsToRemove.length) {
+        await deleteUserPermissions({ userId: user.id, permissionIds: permsToRemove }).unwrap();
+      }
+      if (permsToAdd.length || permsToRemove.length) {
+        message.success("Huquqlar yangilandi!");
+      }
+    } catch (err: unknown) {
+      const error = err as { data?: { message?: string } };
+      message.error(error?.data?.message || "Huquqlarni yangilashda xatolik");
+    }
+
+    onClose();
+  };
+
+  const initialRoleIds = roles
+    ?.filter((r) => user?.roles.includes(r.name))
+    .map((r) => r.id) ?? [];
+
+  const initialPermIds = permissions
+    ?.filter((p) => user?.permissions.includes(`${p.action}:${p.resource}`))
+    .map((p) => p.id) ?? [];
+
+  return (
+    <Modal
+      title="Foydalanuvchini tahrirlash"
+      open={!!user}
+      onCancel={onClose}
+      footer={null}
+      destroyOnClose
+      width={screens.md ? 520 : "95vw"}
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        initialValues={{
+          name: user?.name,
+          surname: user?.surname,
+          email: user?.email,
+          roleIds: initialRoleIds,
+          permissionIds: initialPermIds,
+        }}
+        style={{ marginTop: 16 }}
+      >
+        <Form.Item
+          name="name"
+          label="Ism"
+          rules={[{ required: true, message: "Ism kiriting!" }]}
+        >
+          <Input placeholder="Ism" />
+        </Form.Item>
+        <Form.Item
+          name="surname"
+          label="Familiya"
+          rules={[{ required: true, message: "Familiya kiriting!" }]}
+        >
+          <Input placeholder="Familiya" />
+        </Form.Item>
+        <Form.Item
+          name="email"
+          label="Email"
+          rules={[
+            { required: true, message: "Email kiriting!" },
+            { type: "email", message: "Email formati noto'g'ri!" },
+          ]}
+        >
+          <Input placeholder="Email" />
+        </Form.Item>
+        <Form.Item
+          name="roleIds"
+          label="Rollar"
+          rules={[{ required: true, message: "Kamida bitta rol tanlang!" }]}
+        >
+          <Select
+            mode="multiple"
+            placeholder="Rollarni tanlang"
+            options={roles?.map((r) => ({ label: r.name, value: r.id }))}
+          />
+        </Form.Item>
+        <Form.Item
+          name="permissionIds"
+          label="Huquqlar"
+        >
+          <Select
+            mode="multiple"
+            placeholder="Huquqlarni tanlang"
+            options={permissions?.map((p) => ({ label: `${p.action}:${p.resource}`, value: p.id }))}
+          />
+        </Form.Item>
+        <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
+          <Space>
+            <Button onClick={onClose}>Bekor qilish</Button>
+            <Button type="primary" htmlType="submit" loading={isUpdating || isAddingRoles || isDeletingRoles || isAddingPerms || isDeletingPerms}>
+              Saqlash
+            </Button>
+          </Space>
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+function UserActions({ user, onEdit }: { user: User; onEdit: (user: User) => void }) {
   const { hasPermission } = usePermission();
   const [deleteUser] = useDeleteUserMutation();
 
@@ -34,18 +311,14 @@ function UserActions({ user }: { user: User }) {
   };
 
   return (
-    <Space>
+    <Space size={0}>
       {hasPermission("WRITE:USERS") && (
         <Button
           type="link"
           icon={<EditOutlined />}
-          onClick={() => {
-            // TODO: tahrirlash modalni ochish
-            console.log("Edit", user.id);
-          }}
-        >
-          Tahrirlash
-        </Button>
+          onClick={() => onEdit(user)}
+          size="small"
+        />
       )}
       {hasPermission("DELETE:USERS") && (
         <Popconfirm
@@ -54,15 +327,16 @@ function UserActions({ user }: { user: User }) {
           okText="Ha"
           cancelText="Yo'q"
         >
-          <Button type="link" danger icon={<DeleteOutlined />}>
-            O'chirish
-          </Button>
+          <Button type="link" danger icon={<DeleteOutlined />} size="small" />
         </Popconfirm>
       )}
     </Space>
   );
 }
+
 export default function Users() {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const { data: users, isLoading } = useGetUsersQuery();
   const { hasPermission, hasAnyPermission } = usePermission();
 
@@ -82,16 +356,19 @@ export default function Users() {
       title: "Familiya",
       dataIndex: "surname",
       key: "surname",
+      responsive: ["md"],
     },
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
+      ellipsis: true,
     },
     {
       title: "Rollar",
       dataIndex: "roles",
       key: "roles",
+      responsive: ["lg"],
       render: (roles: string[]) => (
         <Flex gap={4} wrap>
           {roles.map((role) => (
@@ -114,7 +391,7 @@ export default function Users() {
           {
             title: "Amallar",
             key: "actions",
-            render: (_: unknown, record: User) => <UserActions user={record} />,
+            render: (_: unknown, record: User) => <UserActions user={record} onEdit={setEditingUser} />,
           },
         ]
       : []),
@@ -130,7 +407,7 @@ export default function Users() {
 
   return (
     <Card>
-      <Flex justify="space-between" align="center" style={{ marginBottom: 16 }}>
+      <Flex justify="space-between" align="center" wrap gap={8} style={{ marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>
           Foydalanuvchilar
         </Title>
@@ -138,10 +415,7 @@ export default function Users() {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => {
-              // TODO: yaratish modalni ochish
-              console.log("Create user");
-            }}
+            onClick={() => setCreateOpen(true)}
           >
             Yangi foydalanuvchi
           </Button>
@@ -153,6 +427,14 @@ export default function Users() {
         rowKey="id"
         pagination={{ pageSize: 10 }}
         scroll={{ x: 600 }}
+      />
+      <CreateUserModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+      />
+      <EditUserModal
+        user={editingUser}
+        onClose={() => setEditingUser(null)}
       />
     </Card>
   );

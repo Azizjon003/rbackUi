@@ -28,11 +28,13 @@ const columns: ColumnsType<Payment> = [
     title: "Buyurtma",
     dataIndex: "orderId",
     key: "orderId",
+    responsive: ["md"],
   },
   {
     title: "Mijoz",
     dataIndex: "customerName",
     key: "customerName",
+    ellipsis: true,
   },
   {
     title: "Summa",
@@ -46,7 +48,7 @@ const columns: ColumnsType<Payment> = [
     dataIndex: "method",
     key: "method",
     render: (method: string) => methodLabels[method] ?? method,
-    responsive: ["md"],
+    responsive: ["lg"],
   },
   {
     title: "Holat",

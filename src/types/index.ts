@@ -34,13 +34,37 @@ export interface CreateUserRequest {
   surname: string;
   email: string;
   password: string;
-  roleIds: number[];
 }
 
 export interface UpdateUserRequest {
-  name?: string;
-  surname?: string;
-  email?: string;
-  password?: string;
-  roleIds?: number[];
+  id: number;
+  name: string;
+  surname: string;
+  email: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AddUserRolesRequest {
+  userId: number;
+  roleIds: number[];
+}
+
+export interface Permission {
+  id: number;
+  action: string;
+  resource: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AddUserPermissionsRequest {
+  userId: number;
+  permissionIds: number[];
 }

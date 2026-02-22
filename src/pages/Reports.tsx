@@ -28,6 +28,7 @@ const columns: ColumnsType<Report> = [
     title: "Hisobot nomi",
     dataIndex: "title",
     key: "title",
+    ellipsis: true,
   },
   {
     title: "Turi",
@@ -41,6 +42,7 @@ const columns: ColumnsType<Report> = [
     title: "Davr",
     dataIndex: "period",
     key: "period",
+    responsive: ["md"],
   },
   {
     title: "Summa",
@@ -48,7 +50,7 @@ const columns: ColumnsType<Report> = [
     key: "totalAmount",
     render: (amount?: number) =>
       amount ? `${amount.toLocaleString()} UZS` : "—",
-    responsive: ["md"],
+    responsive: ["lg"],
   },
   {
     title: "Holat",
