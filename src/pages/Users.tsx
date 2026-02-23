@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   Card,
@@ -202,13 +202,23 @@ function EditUserModal({
     onClose();
   };
 
-  const initialRoleIds = roles
-    ?.filter((r) => user?.roles.includes(r.name))
-    .map((r) => r.id) ?? [];
-
-  const initialPermIds = permissions
-    ?.filter((p) => user?.permissions.includes(`${p.action}:${p.resource}`))
-    .map((p) => p.id) ?? [];
+  useEffect(() => {
+    if (user) {
+      const roleIds = roles
+        ?.filter((r) => user.roles.includes(r.name))
+        .map((r) => r.id) ?? [];
+      const permissionIds = permissions
+        ?.filter((p) => user.permissions.includes(`${p.action}:${p.resource}`))
+        .map((p) => p.id) ?? [];
+      form.setFieldsValue({
+        name: user.name,
+        surname: user.surname,
+        email: user.email,
+        roleIds,
+        permissionIds,
+      });
+    }
+  }, [user, roles, permissions, form]);
 
   return (
     <Modal
@@ -223,13 +233,6 @@ function EditUserModal({
         form={form}
         layout="vertical"
         onFinish={handleSubmit}
-        initialValues={{
-          name: user?.name,
-          surname: user?.surname,
-          email: user?.email,
-          roleIds: initialRoleIds,
-          permissionIds: initialPermIds,
-        }}
         style={{ marginTop: 16 }}
       >
         <Form.Item
