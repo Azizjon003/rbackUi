@@ -2,13 +2,14 @@ import { baseApi } from "./baseApi";
 
 export interface Payment {
   id: number;
-  orderId: string;
+  order_id: string;
   amount: number;
   currency: string;
   status: string;
   method: string;
-  customerName: string;
-  createdAt: string;
+  customer_name: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export const paymentsApi = baseApi.injectEndpoints({

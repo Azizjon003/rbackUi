@@ -5,13 +5,14 @@ export interface Report {
   title: string;
   type: string;
   period: string;
-  totalAmount?: number;
-  totalOrders?: number;
-  totalUsers?: number;
-  activeUsers?: number;
-  successRate?: number;
+  total_amount: number | null;
+  total_orders: number | null;
+  total_users: number | null;
+  active_users: number | null;
+  success_rate: number | null;
   status: string;
-  createdAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export const reportsApi = baseApi.injectEndpoints({

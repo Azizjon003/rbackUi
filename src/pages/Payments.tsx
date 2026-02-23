@@ -26,14 +26,14 @@ const methodLabels: Record<string, string> = {
 const columns: ColumnsType<Payment> = [
   {
     title: "Buyurtma",
-    dataIndex: "orderId",
-    key: "orderId",
+    dataIndex: "order_id",
+    key: "order_id",
     responsive: ["md"],
   },
   {
     title: "Mijoz",
-    dataIndex: "customerName",
-    key: "customerName",
+    dataIndex: "customer_name",
+    key: "customer_name",
     ellipsis: true,
   },
   {
@@ -62,8 +62,8 @@ const columns: ColumnsType<Payment> = [
   },
   {
     title: "Sana",
-    dataIndex: "createdAt",
-    key: "createdAt",
+    dataIndex: "created_at",
+    key: "created_at",
     render: (date: string) => new Date(date).toLocaleDateString("uz-UZ"),
     responsive: ["md"],
   },

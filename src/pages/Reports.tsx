@@ -46,9 +46,9 @@ const columns: ColumnsType<Report> = [
   },
   {
     title: "Summa",
-    dataIndex: "totalAmount",
-    key: "totalAmount",
-    render: (amount?: number) =>
+    dataIndex: "total_amount",
+    key: "total_amount",
+    render: (amount: number | null) =>
       amount ? `${amount.toLocaleString()} UZS` : "—",
     responsive: ["lg"],
   },
@@ -64,8 +64,8 @@ const columns: ColumnsType<Report> = [
   },
   {
     title: "Sana",
-    dataIndex: "createdAt",
-    key: "createdAt",
+    dataIndex: "created_at",
+    key: "created_at",
     render: (date: string) => new Date(date).toLocaleDateString("uz-UZ"),
     responsive: ["md"],
   },
